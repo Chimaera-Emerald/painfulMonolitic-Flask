@@ -2,3 +2,5 @@ PLAN.md
 
 *.db
 *.db-journal
+__pycache__/
+*.pyc

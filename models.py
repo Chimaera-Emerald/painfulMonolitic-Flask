@@ -18,11 +18,13 @@ def init_db():
     cursor.executescript("""
         CREATE TABLE IF NOT EXISTS users (
             id            INTEGER PRIMARY KEY AUTOINCREMENT,
-            username      TEXT NOT NULL UNIQUE,
+            display_name  TEXT NOT NULL UNIQUE,
             email         TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             bio           TEXT,
-            created_at    TEXT NOT NULL
+            created_at    TEXT NOT NULL,
+            opted_out     INTEGER NOT NULL DEFAULT 0,
+            notifications INTEGER NOT NULL DEFAULT 1
         );
 
         CREATE TABLE IF NOT EXISTS games (
@@ -67,6 +69,21 @@ def init_db():
             created_at        TEXT NOT NULL
         );
     """)
+
+    cursor.execute("PRAGMA table_info(users)")
+    existing_columns = {row[1] for row in cursor.fetchall()}
+    if "display_name" not in existing_columns and "username" in existing_columns:
+        cursor.execute("ALTER TABLE users RENAME COLUMN username TO display_name")
+        existing_columns.add("display_name")
+        existing_columns.discard("username")
+
+    if "opted_out" not in existing_columns:
+        cursor.execute("ALTER TABLE users ADD COLUMN opted_out INTEGER NOT NULL DEFAULT 0")
+        existing_columns.add("opted_out")
+
+    if "notifications" not in existing_columns:
+        cursor.execute("ALTER TABLE users ADD COLUMN notifications INTEGER NOT NULL DEFAULT 1")
+        existing_columns.add("notifications")
 
     conn.commit()
     conn.close()

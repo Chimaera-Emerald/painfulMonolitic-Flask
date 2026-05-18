@@ -101,3 +101,71 @@ What else just went down, and for how long?
 **10.** A teammate says: *"let's just move the notification logic into its own function in `app.py`"*.
 Does that solve the problem described in Task 4?
 What is the actual architectural issue?
+
+---
+
+ANSWERS
+
+1) Tables written when logging an activity
+
+- activities
+- notifications
+- The app inserts one activity row, then one notification per friend.
+
+2) `DELETE FROM users WHERE id = 3` run directly in SQLite
+
+- It will fail if the user is still referenced by other rows.
+- You must delete related notifications, activities, user_games, and friends first, or use cascading deletes.
+
+3) `nova` renames to `nova_2` — what do friends see?
+
+- The saved notification text still has the old name.
+- The sender field uses the current user row, so that shows the new name.
+
+4) Full journey of `POST /activities`
+
+- Flask gets the request and parses JSON.
+- The app opens the DB and checks the user.
+- It inserts the activity.
+- It fetches the activity and game.
+- If notifications are on, it finds friends and inserts notifications.
+- It commits and returns the activity.
+
+5) `pixel_queen` opts out and teammate added `opted_out` + a check in `POST /activities`
+
+- Not fully done.
+- The API route checks opt-out, but the web form route still logs activities and the seed/schema need to support the flag.
+
+6) Rows created when `nova` logs one activity (with current seed)
+
+- 1 row in `activities`
+- 2 rows in `notifications`
+- Total = 3 rows.
+
+7) Deleting `maya_r` — order and why
+
+- Delete notifications she received.
+- Delete notifications she triggered.
+- Delete her activities.
+- Delete her user_games.
+- Delete her friendships.
+- Delete her user row.
+- The order matters because child rows must be removed before parent rows.
+
+8) `notifications` references `activities`. What happens if you delete an activity with attached notifications?
+
+- SQLite blocks it while foreign keys are on.
+- Delete the notifications first or use `ON DELETE CASCADE`.
+
+9) Fixing a game title and restarting the app — what else goes down and for how long?
+
+- The whole app goes down during the restart.
+- Users can’t use the service while it restarts.
+
+10) Moving notification logic into its own function in `app.py` — does it solve Task 4?
+
+- No.
+- The issue is still that notifications are created inside the request, so the code is still coupled and blocking.
+
+---
+
